@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:vaadin="http://www.jdal.org/schema/vaadin"
+       xmlns:jdal="http://www.jdal.org/schema/jdal"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:util="http://www.springframework.org/schema/util"
+       default-init-method="init"
+       xmlns:jdal-aop="http://www.jdal.org/schema/jdal-aop"
+       xsi:schemaLocation="http://www.jdal.org/schema/vaadin http://www.jdal.org/schema/jdal/jdal-vaadin.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.jdal.org/schema/jdal http://www.jdal.org/schema/jdal/jdal-core.xsd
+		http://www.jdal.org/schema/jdal-aop http://www.jdal.org/schema/jdal-aop.xsd
+		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd">
+
+    <!-- UI Widgets -->
+
+    <!-- Register default Vaadin components -->
+    <vaadin:defaults/>
+
+    <!-- Vaadin scoped beans are linked to UI class instances -->
+    <bean id="vaadinScopeConfigurer" class="org.springframework.beans.factory.config.CustomScopeConfigurer">
+        <property name="scopes">
+            <map>
+                <entry key="ui" value="org.jdal.vaadin.beans.VaadinScope"/>
+            </map>
+        </property>
+    </bean>
+
+    <!-- Application UI -->
+    <bean id="uid" class="ru.javarush.winter2014.vaadin.MainApp" scope="prototype"/>
+
+    <bean id="springViewProvider" class="org.jdal.vaadin.ui.SpringViewProvider" scope="prototype"
+          p:defaultView="userMainView"/>
+
+    <!-- Make main views ui scoped to avoid recreating thems in every page change -->
+    <bean id="userMainView" class="ru.javarush.winter2014.vaadin.UserMainView" scope="ui"/>
+
+    <!-- Abstract definition for Views -->
+    <bean id="view" abstract="true">
+        <property name="controlInitializer" ref="controlInitializer"/>
+        <property name="errorProcessors">
+            <list>
+                <ref bean="errorProcessor"/>
+            </list>
+        </property>
+        <property name="validator" ref="validator"/>
+    </bean>
+
+    <bean id="controlInitializer" class="org.jdal.vaadin.ui.bind.VaadinControlInitializer">
+        <property name="persistentService" ref="contextPersistentService"/>
+    </bean>
+
+    <!-- Spring JSR-303 validator -->
+    <bean id="validator" class="org.springframework.validation.beanvalidation.LocalValidatorFactoryBean">
+        <jdal:serializable-proxy/>
+    </bean>
+
+    <!-- Error Processor -->
+    <bean id="errorProcessor" class="org.jdal.vaadin.ui.bind.UserErrorProcessor"/>
+
+    <bean id="columnGenerator" class="ru.javarush.winter2014.vaadin.BooleanColumnGenerator"/>
+
+     <!-- Book Table Definition -->
+    <vaadin:table entity="ru.javarush.winter2014.model.User" filter-form="userFilterEditor" scope="prototype" actions="actionList">
+        <vaadin:columns>
+            <vaadin:column name="id" display-name="ID" width="60" align="center"/>
+            <vaadin:column name="name" display-name="Name" align="left"/>
+            <vaadin:column name="admin" display-name="Admin" align="center" column-generator="columnGenerator"/>
+
+            <vaadin:column name="age" display-name="Age" width="150" align="right"/>
+            <vaadin:column name="createDate" display-name="Create Date" width="150" property-editor="customDateEditor" />
+        </vaadin:columns>
+    </vaadin:table>
+
+    <!--  Action List for table buttons -->
+    <util:list id="actionList" scope="prototype">
+        <bean class="org.jdal.vaadin.ui.table.AddAction"  p:icon="images/table/filenew.png"
+              p:description="Add new user" />
+        <bean class="org.jdal.vaadin.ui.table.RemoveAction" p:icon="images/table/edit-delete.png"
+              p:description="Delete selected users" />
+        <bean class="org.jdal.vaadin.ui.table.FindAction" p:icon="images/table/edit-find.png"
+              p:description="Apply filter" />
+        <bean class="org.jdal.vaadin.ui.table.ClearFilterAction" p:icon="images/table/edit-clear.png"
+              p:description="Clear filter" />
+        <bean class="org.jdal.vaadin.ui.table.RefreshAction" p:icon="images/table/reload.png"
+              p:description="Refresh current page" />
+    </util:list>
+
+
+    <bean id="customDateEditor" class="org.springframework.beans.propertyeditors.CustomDateEditor"
+          scope="prototype">
+        <constructor-arg>
+            <bean class="java.text.SimpleDateFormat">
+                <constructor-arg value="dd/MM/yyyy"/>
+            </bean>
+        </constructor-arg>
+        <constructor-arg value="true"/>
+        <jdal:serializable-proxy/>
+    </bean>
+
+    <!-- User Form Editor -->
+    <bean id="userEditor" class="ru.javarush.winter2014.vaadin.UserView" parent="view" scope="prototype">
+        <property name="width" value="600"/>
+        <property name="height" value="300"/>
+        <property name="persistentService" ref="userService"/>
+    </bean>
+
+    <!-- View Dialog Prototype -->
+    <bean id="viewDialog" class="org.jdal.vaadin.ui.form.ViewDialog" scope="prototype"/>
+
+    <!-- The user Filter Editor -->
+    <bean id="userFilterEditor" class="ru.javarush.winter2014.vaadin.UserFilterView" scope="prototype">
+        <property name="controlInitializer" ref="controlInitializer"/>
+    </bean>
+
+</beans>
